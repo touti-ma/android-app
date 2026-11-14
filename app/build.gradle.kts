@@ -6,14 +6,27 @@ plugins {
   alias(libs.plugins.ktfmt)
   alias(libs.plugins.sonar)
   id("jacoco")
+  alias(libs.plugins.gms)
+}
+
+val ciKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+val ciStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val ciKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+val ciKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+val ciSigningValues = listOf(ciKeystorePath, ciStorePassword, ciKeyAlias, ciKeyPassword)
+val ciSigningConfigured = ciSigningValues.any { !it.isNullOrBlank() }
+
+require(!ciSigningConfigured || ciSigningValues.all { !it.isNullOrBlank() }) {
+  "All ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and " +
+      "ANDROID_KEY_PASSWORD values must be set to use CI signing."
 }
 
 android {
-  namespace = "com.android.sample"
+  namespace = "com.android.touti"
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.android.sample"
+    applicationId = "com.android.touti"
     minSdk = 28
     targetSdk = 34
     versionCode = 1
@@ -23,9 +36,20 @@ android {
     vectorDrawables { useSupportLibrary = true }
   }
 
+  signingConfigs {
+    if (ciSigningConfigured) {
+      create("ci") {
+        storeFile = file(requireNotNull(ciKeystorePath))
+        storePassword = requireNotNull(ciStorePassword)
+        keyAlias = requireNotNull(ciKeyAlias)
+        keyPassword = requireNotNull(ciKeyPassword)
+      }
+    }
+  }
+
   buildTypes {
     release {
-      isMinifyEnabled = false
+      isMinifyEnabled = true
       proguardFiles(
           getDefaultProguardFile("proguard-android-optimize.txt"),
           "proguard-rules.pro",
@@ -35,19 +59,35 @@ android {
     debug {
       enableUnitTestCoverage = true
       enableAndroidTestCoverage = true
+      if (ciSigningConfigured) {
+        signingConfig = signingConfigs.getByName("ci")
+      }
+      isPseudoLocalesEnabled = true
     }
   }
 
-  testCoverage { jacocoVersion = "0.8.11" }
+  testCoverage { jacocoVersion = "0.8.14" }
 
-  buildFeatures { compose = true }
+  buildFeatures {
+    compose = true
+    buildConfig = true
+  } // Enable buildConfig generation for the app module
 
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+  packaging {
+    resources {
+      excludes +=
+          listOf(
+              "/META-INF/{AL2.0,LGPL2.1}",
+              "/META-INF/LICENSE*",
+              "/META-INF/NOTICE*",
+          )
+    }
+  }
 
   testOptions {
     unitTests {
@@ -79,14 +119,14 @@ android {
   }
 }
 
-// With AGP 9+ the JVM target is set outside the Android block.
+// With AGP 9 the JVM target is set outside the android block.
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 sonar {
   properties {
-    property("sonar.projectKey", "gf_android-sample")
-    property("sonar.projectName", "Android-Sample")
-    property("sonar.organization", "gabrielfleischer")
+    property("sonar.projectKey", "touti-ma_android-app")
+    property("sonar.organization", "touti-ma")
+    property("sonar.projectName", "Touti")
     property("sonar.host.url", "https://sonarcloud.io")
     // Comma-separated paths to the various directories containing the *.xml JUnit report files.
     // Each path may be absolute or relative to the project base directory.
@@ -94,7 +134,8 @@ sonar {
         "sonar.junit.reportPaths",
         "${project.layout.buildDirectory.get()}/test-results/testDebugunitTest/",
     )
-    // Paths to xml files with Android Lint issues. If the main flavor is changed, this file will
+    // Paths to xml files with Android Lint issues. If the main flavor is changed, this file
+    // will
     // have to be changed too.
     property(
         "sonar.androidLint.reportPaths",
@@ -115,12 +156,24 @@ fun DependencyHandlerScope.globalTestImplementation(dep: Any) {
 }
 
 dependencies {
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.androidx.navigation.compose)
+  implementation(libs.credentials)
+  implementation(libs.credentials.play.services.auth)
+  implementation(libs.firebase.firestore)
+  implementation(libs.firebase.storage)
+  implementation(libs.googleid)
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.core.splashscreen)
   implementation(libs.androidx.appcompat)
+  implementation(libs.firebase.auth)
   implementation(libs.material)
   implementation(libs.androidx.lifecycle.runtime.ktx)
+  implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(platform(libs.compose.bom))
   testImplementation(libs.junit)
+  testImplementation(libs.mockk)
+  testImplementation(libs.kotlinx.coroutines.test)
   globalTestImplementation(libs.androidx.junit)
   globalTestImplementation(libs.androidx.espresso.core)
 
@@ -131,6 +184,10 @@ dependencies {
 
   implementation(libs.compose.ui)
   implementation(libs.compose.ui.graphics)
+  implementation(libs.compose.material.icons.extended)
+  androidTestImplementation(libs.mockk.android)
+  // Settings
+  implementation(libs.androidx.preference.ktx)
   // Material Design 3
   implementation(libs.compose.material3)
   // Integration with activities
@@ -143,6 +200,7 @@ dependencies {
   // UI Tests
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
+  testImplementation(libs.mockk)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)
@@ -152,6 +210,13 @@ dependencies {
   testImplementation(libs.robolectric)
 }
 
+dependencyLocking { lockAllConfigurations() }
+
+// Exclude protobuf-lite from all configurations to avoid conflicts with protobuf-javalite.
+// This is necessary because Firebase Firestore depends on protobuf-lite, while other libraries may
+// depend on protobuf-javalite, leading to version conflicts.
+configurations.configureEach { exclude(group = "com.google.protobuf", module = "protobuf-lite") }
+
 tasks.withType<Test> {
   // Configure Jacoco for each tests
   configure<JacocoTaskExtension> {
@@ -160,7 +225,10 @@ tasks.withType<Test> {
   }
 }
 
-tasks.register("jacocoTestReport", JacocoReport::class) {
+tasks.register(name = "jacocoTestReport", type = JacocoReport::class) {
+  group = "verification"
+  description = "Generates the Jacoco code coverage report for the debug build."
+  dependsOn("compileDebugKotlin")
   mustRunAfter("testDebugUnitTest", "connectedDebugAndroidTest")
 
   reports {
@@ -175,11 +243,16 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
           "**/BuildConfig.*",
           "**/Manifest*.*",
           "**/*Test*.*",
+          "**/navigation/AppScreens*.class",
           "android/**/*.*",
       )
 
   val debugTree =
-      fileTree("${project.layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+      fileTree(project.layout.buildDirectory) {
+        include(
+            // AGP 9 compiles Kotlin with its built-in compiler, which writes here
+            "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**",
+        )
         exclude(fileFilter)
       }
 
