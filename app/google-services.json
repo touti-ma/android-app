@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "581269600887",
+    "project_id": "touti-e8841",
+    "storage_bucket": "touti-e8841.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581269600887:android:b0df1d955c7a81fd7b2472",
+        "android_client_info": {
+          "package_name": "com.android.touti"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBM3znw3LPp40sjQYU6f9Fv5VW9xdvt8dA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

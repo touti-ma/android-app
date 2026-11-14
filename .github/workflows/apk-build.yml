@@ -34,7 +34,7 @@ jobs:
               exit 1
             fi
           done
-          keystore="$RUNNER_TEMP/festivar-ci.jks"
+          keystore="$RUNNER_TEMP/touti-ci.jks"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
           if ! keytool -list -keystore "$keystore" \
             -storepass:env ANDROID_KEYSTORE_PASSWORD \
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build debug APK
         env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/festivar-ci.jks
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/touti-ci.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -54,6 +54,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
-          name: FestivAR-APK
+          name: Touti-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
