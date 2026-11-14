@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-  namespace = "com.android.sample"
+  namespace = "com.android.touti"
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.android.sample"
+    applicationId = "com.android.touti"
     minSdk = 28
     targetSdk = 34
     versionCode = 1
