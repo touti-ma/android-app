@@ -5,7 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.android.touti.ui.theme.SampleAppTheme
+import com.android.touti.ui.theme.ToutiTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,7 +28,7 @@ class ThemeAndPreviewTest {
   @Test
   fun theme_dark_without_dynamic_color() {
     composeTestRule.setContent {
-      SampleAppTheme(darkTheme = true, dynamicColor = false) { Text("dark") }
+      ToutiTheme(darkTheme = true, dynamicColor = false) { Text("dark") }
     }
     composeTestRule.onNodeWithText("dark").assertExists()
   }
@@ -36,7 +36,7 @@ class ThemeAndPreviewTest {
   @Test
   fun theme_light_without_dynamic_color() {
     composeTestRule.setContent {
-      SampleAppTheme(darkTheme = false, dynamicColor = false) { Text("light") }
+      ToutiTheme(darkTheme = false, dynamicColor = false) { Text("light") }
     }
     composeTestRule.onNodeWithText("light").assertExists()
   }
@@ -44,7 +44,7 @@ class ThemeAndPreviewTest {
   @Test
   fun theme_dynamic_dark_and_light() {
     composeTestRule.setContent {
-      SampleAppTheme(darkTheme = true, dynamicColor = true) { Text("dyn-dark") }
+      ToutiTheme(darkTheme = true, dynamicColor = true) { Text("dyn-dark") }
     }
     composeTestRule.onNodeWithText("dyn-dark").assertExists()
   }
